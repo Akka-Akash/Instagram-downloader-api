@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/instagram_downloader.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/instagram_downloader", "dest": "/api/instagram_downloader.js" }
+  ]
+}
