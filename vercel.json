@@ -4,6 +4,6 @@
     { "src": "api/instagram_downloader.js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/api/instagram_downloader", "dest": "/api/instagram_downloader.js" }
+    { "src": "/api/instagram_downloader", "dest": "api/instagram_downloader.js" }
   ]
 }
