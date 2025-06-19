@@ -1,51 +1,47 @@
 const axios = require('axios');
+const cheerio = require('cheerio');
+
+// Allow CORS
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Content-Type': 'application/json',
+};
 
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.status(200).set(corsHeaders).end();
   }
 
-  const { url } = req.body;
-
-  if (!url || !url.includes('instagram.com')) {
-    return res.status(400).json({ error: 'Invalid Instagram URL' });
+  if (req.method !== 'POST') {
+    return res.status(405).set(corsHeaders).json({ success: false, message: 'Method Not Allowed' });
   }
 
   try {
-    const response = await axios.get('https://instadl.app/api/v1/download', {
-      params: { url: url, format: 'json' },
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        'Accept': 'application/json'
-      }
-    });
+    const { url } = req.body;
 
-    const result = response.data;
-
-    if (!result || !result.media) {
-      return res.status(500).json({ error: 'No media found in response' });
+    if (!url) {
+      return res.status(400).set(corsHeaders).json({ success: false, message: 'Missing URL' });
     }
 
-    const formattedResponse = {
-      success: true,
-      data: {
-        url: result.media[0].url,
-        type: result.media[0].type,
-        thumbnail: result.media[0].thumbnail
-      }
-    };
-
-    res.status(200).json(formattedResponse);
-  } catch (err) {
-    console.error('Error:', err);
-    res.status(500).json({ 
-      error: 'Server Error',
-      details: err.message,
-      response: err.response?.data
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+      },
     });
+
+    const $ = cheerio.load(response.data);
+    const videoUrl = $('meta[property="og:video"]').attr('content');
+
+    if (!videoUrl) {
+      return res.status(404).set(corsHeaders).json({ success: false, message: 'Video not found' });
+    }
+
+    return res.status(200).set(corsHeaders).json({ success: true, videoUrl });
+
+  } catch (err) {
+    console.error("Error:", err.message);
+    return res.status(500).set(corsHeaders).json({ success: false, message: 'Server Error' });
   }
 };
